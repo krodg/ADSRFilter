@@ -19,7 +19,7 @@ import java.util.logging.Logger;
  */
 public class DigitalFilter {
 
-    final private int SL = 44100;
+    final private int SL = 44100; //signal length - # of samples 
 
     public DigitalFilter()
     {
@@ -34,17 +34,20 @@ public class DigitalFilter {
             Double inputSample;
             //ArrayList<Double> filteredSignal = new ArrayList<>();
             //input from user
-            int A = 5; //1-10
-            int D = 5; //1-10
-            int S = 5; //1-10
-            int R = 5; //1-10
+            int A = 8; //1-10
+            int D = 8; //1-10
+            int S = 4; //1-10
+            int R = 8; //1-10
+            
+            double F = new Double(0.2); //serves as a floor for the sound - sustain volume
+            double C = new Double(1.0);
             
 
             //depending on value entered, adjust value to form used by filter
             int aA = A * 110;  //1/400th - 10/400th of a second
-            int aD = D * 220;  //1/200th - 10/200ths of a second = 
+            int aD = D * 441;  //1/100th - 10/100ths of a second = 
             int aS = S * 4410; //1/10th - 1 second
-            int aR = R * 220;  //1/100th - 10-100ths of a second
+            int aR = R * 220;  //1/200th - 10-200ths of a second
             
             System.out.print(A + " " + D + " " + S + " " + R + '\n');
             System.out.print(aA + " " + aD + " " + aS + " " + aR + '\n');
@@ -65,8 +68,9 @@ public class DigitalFilter {
             output.write(scan.nextLine());
             output.write('\n');
             
-
-
+            double x = new Double(0);
+            
+            //for the length of the signal coming in
             for (int i = 0; i < SL; i++)
             {
                 
@@ -91,58 +95,60 @@ public class DigitalFilter {
                 inputSample = tempd;
                 
                 
-                double x;
+
                // filteredSample = (BigDecimal.valueOf(j/aA) * BigDecimal.valueOf(inputSample)));
                 
                 //get value to multiply by the incoming sample based on time
                 //attack
                 if (i < aA)
                 {
-                    x = new Double(new Double(j)/new Double(aA));
-
+                    x = (F + (new Double(j)/new Double(aA)));
+                        
+                        if (x > C)
+                            x = C;
                     j++;
                     
-                    if (j + 1 == aA)
+                    if (i + 1 == aA)
                     {
-                        j = aD;
+                        j = 0;
                     }
                 }
                     //decay
-                    else if((i > aA) && (i < (aA+aD)))
+                    else if((i >= aA) && (i < (aA+aD)))
                     {
                     //filteredSample = (((0.5 + (j/aD)*0.5)
-                    x = new Double((new Double(0.8)) + new Double((new Double(j)/new Double(aD))*new Double(0.5)));
+                        if (j == 0)
+                            {
+                                x = C;
+                            }
+                        else
+                            {  
+                                x = ((x - (0.0925 / new Double(j))));
+                                if (x < F)
+                                    x = F;
+                            }
                            // *(inputSample)));
-                    //System.out.print(filteredSignal.get(i) + '\n');
-                    j--;
-                        if ((j - 1) == 0)
-                        {
-                        j = S;
-                        }
+                    System.out.print(x + "\n");
+                        j++;
                     }
                         //sustain
-                        else if((i > (aA+aD)) && (i < (aA+aD+aS)))
+                        else if((i >= (aA+aD)) && (i < (aA+aD+aS)))
                         {
-                            x = new Double((new Double(0.2) - (new Double(new Double(2)/(new Double(j*j))))));
-                              //  *(inputSample));
-                            j--;
-                            if ((j - 1) == 0)
+                            x = F;
+                            if (i + 1 == aA+aD+aS)
                             {
                             j = aR;
                             }
                         }
                             //release 
-                            else if(i > (aA+aD+aS))
+                            else if (i >= aA+aD+aS && i < aA+aD+aS+aR)
                             {
-                                //needs work - does not drop in amplitude
-                                x = new Double(new Double(0.10) - ((new Double(1)/(new Double(j))) * new Double(0.10)));
-                               //filteredSample = (((1/4 - ((1/(aR - j))*(0.25)))
-                                  //   *(inputSample)));
-                               
-                               j--;
+                                x = ((F*(new Double(j)/new Double(aR))));
+                                j--;
                             }
-                        else
-                            { x = new Double(0.0);}
+                            else x = 0.0;
+                        
+                            
                 String os;
                 
                 //if 
